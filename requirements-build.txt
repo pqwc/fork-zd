@@ -1,4 +1,4 @@
 pyinstaller>=6.0
-pyarmor>=9.0,<10
+pyarmor>=9.2.5,<10
 # PyArmor CI: base64 pyarmor-ci-*.zip → GitHub secret PYARMOR_CI_REGFILE_B64
 # Local: set PYARMOR_REGFILE=path\to\pyarmor-regfile-xxxx.zip before build.bat / build.sh
