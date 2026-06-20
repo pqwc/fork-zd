@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, "feature/**"]
+  pull_request:
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+
+jobs:
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      - name: Compile all modules
+        run: python -m compileall -q ZapretDesktop.py src tests
+      - name: Tests (pytest)
+        run: python -m pytest tests/ -v
+
+  test-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pyqt6
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      - name: Compile all modules
+        run: python -m compileall -q ZapretDesktop.py src tests
+      - name: Tests (pytest)
+        run: python -m pytest tests/ -v
+
+  packaging-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate packaging scripts
+        run: |
+          bash -n build.sh
+          bash -n packaging/scripts/make-deb.sh
+          bash -n packaging/scripts/make-appimage.sh
+          test -f ZapretDesktop-linux.spec
+          test -f ZapretDesktop-win.spec
+          test -f packaging/scripts/pyarmor_pack.py
+          test -f docs/LINUX_INSTALL.md
+          test -f docs/WINDOWS_INSTALL.md
+          test -f docs/README.md
+          test -f docs/DEVELOPMENT.md
+          test -f docs/RELEASE.md
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Packaging unit tests
+        run: |
+          pip install -r requirements-dev.txt
+          python -m pytest tests/test_packaging.py -v
+
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install lint tools
+        run: pip install -r requirements-dev.txt
+      - name: Ruff
+        run: python -m ruff check ZapretDesktop.py src tests
+      - name: pip-audit (runtime deps)
+        run: pip-audit -r requirements.txt
+
+  protected-build-windows:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.PYARMOR_CI_REGFILE_B64 != ''
+    runs-on: windows-latest
+    env:
+      PYARMOR_CI_REGFILE_B64: ${{ secrets.PYARMOR_CI_REGFILE_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install build dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-build.txt
+      - name: Extract icon
+        run: python packaging/scripts/extract_icon.py -o packaging/assets/zapretdesktop.ico --format ICO
+      - name: Protected build smoke test
+        run: python packaging/scripts/pyarmor_pack.py --spec ZapretDesktop-win.spec
+
+  protected-build-linux:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.PYARMOR_CI_REGFILE_B64 != ''
+    runs-on: ubuntu-24.04
+    env:
+      PYARMOR_CI_REGFILE_B64: ${{ secrets.PYARMOR_CI_REGFILE_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: PyArmor CI environment
+        run: sudo mv /dev/disk /dev/disk-none || true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pyqt6
+      - name: Protected portable build smoke test
+        run: ./build.sh --target portable

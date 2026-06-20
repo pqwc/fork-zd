@@ -1,0 +1,18 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".pyarmor",
+    "build",
+    "dist",
+    "scripts/main_window_source.py",
+]
+
+[tool.ruff.lint]
+select = ["F821"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = ["scripts/main_window_source.py", ".pyarmor", "build", "dist"]

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.pqwc.fork-zd.ZapretDesktop</id>
+  <name>ZapretDesktop</name>
+  <summary>GUI for zapret DPI bypass on Linux</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>
+      ZapretDesktop is a PyQt6 GUI for managing zapret strategies on Linux
+      via the zapret-discord-youtube-linux adapter (service.sh, nfqws, nftables).
+    </p>
+    <p>
+      The application does not bundle nfqws; install the Linux adapter separately
+      and point ZapretDesktop to the directory containing service.sh.
+    </p>
+  </description>
+  <launchable type="desktop-id">zapretdesktop.desktop</launchable>
+  <url type="homepage">https://github.com/pqwc/fork-zd</url>
+  <provides>
+    <binary>zapretdesktop</binary>
+  </provides>
+  <categories>
+    <category>Network</category>
+    <category>Utility</category>
+  </categories>
+</component>

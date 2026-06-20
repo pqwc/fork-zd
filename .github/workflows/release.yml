@@ -1,0 +1,171 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+  PYARMOR_CI_REGFILE_B64: ${{ secrets.PYARMOR_CI_REGFILE_B64 }}
+  PYARMOR_PRIVATE: "1"
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pyqt6
+
+      - name: Install test dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Compile all modules
+        run: python -m compileall -q ZapretDesktop.py src tests
+
+      - name: Tests (pytest)
+        run: python -m pytest tests/ -v
+
+  build-windows:
+    needs: [validate]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-build.txt
+
+      - name: Extract icon
+        run: python packaging/scripts/extract_icon.py -o packaging/assets/zapretdesktop.ico --format ICO
+
+      - name: Protected build (PyArmor + PyInstaller)
+        run: python packaging/scripts/pyarmor_pack.py --spec ZapretDesktop-win.spec
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $text = Get-Content -Raw "src/entities/config/config_manager.py"
+          if ($text -match 'VERSION\s*=\s*"([^"]+)"') {
+            "version=$($Matches[1])" >> $env:GITHUB_OUTPUT
+          } else {
+            throw "VERSION not found"
+          }
+
+      - name: Create Windows release zip
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $zip = "dist/ZapretDesktop-$v-windows-x64.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "dist/ZapretDesktop.exe", "packaging/assets/RELEASE_README_WINDOWS.txt" -DestinationPath $zip
+          Get-ChildItem dist
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZapretDesktop-windows
+          path: |
+            dist/ZapretDesktop-*-windows-x64.zip
+            dist/ZapretDesktop.exe
+          if-no-files-found: error
+          retention-days: 7
+
+  build-linux:
+    needs: [validate]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PyArmor CI environment
+        run: sudo mv /dev/disk /dev/disk-none || true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pyqt6 dpkg-dev
+
+      - name: Protected portable build
+        run: |
+          chmod +x build.sh packaging/scripts/*.sh
+          ./build.sh --target portable
+
+      - name: Build .deb package
+        run: |
+          chmod +x build.sh packaging/scripts/*.sh
+          ./build.sh --target deb --skip-venv
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZapretDesktop-linux
+          path: |
+            dist/ZapretDesktop-*-linux-x86_64.tar.gz
+            dist/zapretdesktop_*_amd64.deb
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp artifacts/ZapretDesktop-windows/*.zip release/ 2>/dev/null || true
+          cp artifacts/ZapretDesktop-windows/ZapretDesktop.exe release/ 2>/dev/null || true
+          cp artifacts/ZapretDesktop-linux/*.tar.gz release/
+          cp artifacts/ZapretDesktop-linux/*.deb release/
+          ls -la release/
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: |
+            ## Windows
+            - **Recommended:** `ZapretDesktop-*-windows-x64.zip` (exe + readme)
+            - winws is **not** bundled — configure on first launch (see `docs/WINDOWS_INSTALL.md`)
+
+            ## Linux
+            - **Recommended (Debian/Ubuntu):** `zapretdesktop_*_amd64.deb`
+            - Portable tarball: `ZapretDesktop-*-linux-x86_64.tar.gz`
+            - AppImage: build locally with `./build.sh --target appimage` (see `docs/LINUX_INSTALL.md`)
+            - Requires external [zapret-linux adapter](https://github.com/Sergeydigl3/zapret-discord-youtube-linux)
+            - Verify downloads: `sha256sum -c SHA256SUMS.txt`
+          files: release/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=ZapretDesktop
+Comment=GUI for zapret DPI bypass strategies
+GenericName=Network utility
+Exec=zapretdesktop %U
+Icon=zapretdesktop
+Terminal=false
+Categories=Network;Utility;
+StartupWMClass=ZapretDesktop
+Keywords=zapret;dpi;discord;youtube;nfqws;
+X-AppStream-Id=io.github.pqwc.fork-zd.ZapretDesktop

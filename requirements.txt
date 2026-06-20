@@ -1,0 +1,4 @@
+# PyQt6/psutil/requests — compatible version ranges for CI and release builds
+PyQt6>=6.4.0,<7
+psutil>=5.9.0,<8
+requests>=2.28.0,<3

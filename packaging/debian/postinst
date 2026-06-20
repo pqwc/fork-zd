@@ -1,0 +1,27 @@
+#!/bin/sh
+set -e
+
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications 2>/dev/null || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q /usr/share/icons/hicolor 2>/dev/null || true
+fi
+
+cat <<'MSG'
+
+ZapretDesktop installed.
+
+Next steps:
+  1. Install the zapret-linux adapter (service.sh):
+       git clone https://github.com/Sergeydigl3/zapret-discord-youtube-linux.git ~/zapret-linux
+       cd ~/zapret-linux && ./service.sh download-deps --default
+  2. Configure permissions in the adapter (setup-permissions / sudo).
+  3. Enable nftables if required by your distro.
+  4. Launch ZapretDesktop from the application menu or run: zapretdesktop
+  5. Point the GUI to the adapter directory (first-run dialog or Settings).
+
+Full guide: /usr/share/doc/zapretdesktop/LINUX_INSTALL.md
+MSG
+
+exit 0

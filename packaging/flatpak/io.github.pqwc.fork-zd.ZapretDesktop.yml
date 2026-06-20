@@ -1,0 +1,28 @@
+app-id: io.github.pqwc.fork-zd.ZapretDesktop
+runtime: org.kde.Platform
+runtime-version: '6.6'
+sdk: org.kde.Sdk
+command: zapretdesktop
+finish-args:
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --talk-name=org.freedesktop.Flatpak
+modules:
+  - name: zapretdesktop
+    buildsystem: simple
+    build-commands:
+      - pip3 install --prefix=${FLATPAK_DEST} -r requirements.txt
+      - install -Dm755 build.sh /app/bin/zapretdesktop-build-helper
+      - cp -a src ZapretDesktop.py /app/zapretdesktop-src/
+      - install -Dm755 /dev/stdin /app/bin/zapretdesktop <<'EOF'
+        #!/bin/sh
+        cd /app/zapretdesktop-src
+        exec python3 ZapretDesktop.py "$@"
+        EOF
+      - install -Dm644 packaging/debian/zapretdesktop.desktop /app/share/applications/io.github.pqwc.fork-zd.ZapretDesktop.desktop
+      - install -Dm644 packaging/debian/zapretdesktop.metainfo.xml /app/share/metainfo/io.github.pqwc.fork-zd.ZapretDesktop.metainfo.xml
+    sources:
+      - type: dir
+        path: ../..
