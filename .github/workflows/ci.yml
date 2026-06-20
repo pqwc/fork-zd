@@ -12,7 +12,7 @@ jobs:
   test-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -28,7 +28,7 @@ jobs:
   test-linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -48,7 +48,7 @@ jobs:
   packaging-linux:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate packaging scripts
         run: |
           bash -n build.sh
@@ -73,7 +73,7 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -90,7 +90,7 @@ jobs:
     env:
       PYARMOR_CI_REGFILE_B64: ${{ secrets.PYARMOR_CI_REGFILE_B64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -109,7 +109,7 @@ jobs:
     env:
       PYARMOR_CI_REGFILE_B64: ${{ secrets.PYARMOR_CI_REGFILE_B64 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: PyArmor CI environment
         run: sudo mv /dev/disk /dev/disk-none || true
       - uses: actions/setup-python@v5
